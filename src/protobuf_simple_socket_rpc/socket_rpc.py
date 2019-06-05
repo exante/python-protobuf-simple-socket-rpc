@@ -62,15 +62,16 @@ class SocketRPC(socket.socket):
         self.sendall(client_response)
         return True
 
-    def read_message(self, message: Message) -> Message:
+    def read_message(self, message: Message, message_len_struct: str = 'I') -> Message:
         '''
         read response from server and serialize it to message
         :param message: empty message to serialize to
+        :param message_len: message len struct, default I
         :return: serialized protobuf message
         '''
-        message_len_buffer = self.__recv(
-            4)  # message size is (always?) 4 bytes
-        (message_len,) = struct.unpack('>I', message_len_buffer)
+        message_len_buffer_size = struct.Struct(message_len_struct).size
+        message_len_buffer = self.__recv(message_len_buffer_size)
+        (message_len,) = struct.unpack('>' + message_len_struct, message_len_buffer)
 
         message.ParseFromString(self.__recv(message_len))
 
