@@ -48,10 +48,21 @@ class SocketRPC(socket.socket):
             size -= len(chunk)
         return buffer
 
-    def handshake(self, client_response: bytes,
-                  server_response: bytes) -> bool:
+    def handshake_client(self, client_response: bytes,
+                         server_response: bytes) -> bool:
         '''
-        perform handshake with remote server
+        perform handshake with remote server (client initiated)
+        :param client_response: client string to be passed to server
+        :param server_response: server response expected on connection
+        :return: true in case of successfully handshake
+        '''
+        self.sendall(client_response)
+        return self.__recv(len(server_response)) == server_response
+
+    def handshake_server(self, client_response: bytes,
+                         server_response: bytes) -> bool:
+        '''
+        perform handshake with remote server (server initiated)
         :param client_response: client string to be passed to server
         :param server_response: server response expected on connection
         :return: true in case of successfully handshake
