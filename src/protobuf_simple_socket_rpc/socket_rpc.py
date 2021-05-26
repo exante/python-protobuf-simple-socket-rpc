@@ -77,7 +77,7 @@ class SocketRPC(socket.socket):
         '''
         read response from server and serialize it to message
         :param message: empty message to serialize to
-        :param message_len: message len struct, default I
+        :param message_len_struct: message len struct, default I
         :return: serialized protobuf message
         '''
         message_len_buffer_size = struct.Struct(message_len_struct).size

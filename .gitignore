@@ -15,11 +15,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
 parts/
 sdist/
-var/
 *.egg-info/
 .installed.cfg
 *.egg
@@ -91,3 +88,9 @@ ENV/
 *.deb
 
 .idea/
+
+.mypy_cache/
+
+.venv/
+
+*.tar.xz
