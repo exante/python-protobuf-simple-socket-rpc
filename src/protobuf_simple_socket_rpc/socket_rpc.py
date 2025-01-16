@@ -36,14 +36,11 @@ class SocketRPC(socket.socket):
         '''
         method to receive exact size bytes from server
         :param size: server response size in bytes
-        :throw RuntimeError: in case if socket was closed before chunk was read
         :return: server response
         '''
         buffer = b''
         while size > 0:
-            chunk = self.recv(size)
-            if not chunk:
-                raise RuntimeError('connection closed before chunk was read')
+            chunk = self.recv(1)
             buffer += chunk
             size -= len(chunk)
         return buffer
