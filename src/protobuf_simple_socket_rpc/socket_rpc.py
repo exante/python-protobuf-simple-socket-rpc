@@ -16,6 +16,7 @@
 import socket
 import struct
 
+from google.protobuf.internal.decoder import _DecodeVarint
 from google.protobuf.message import Message
 
 
@@ -45,6 +46,25 @@ class SocketRPC(socket.socket):
             size -= len(chunk)
         return buffer
 
+    def _read_varint(self) -> int:
+        '''
+        credits to https://github.com/soulmachine/delimited-protobuf/blob/main/delimited_protobuf.py
+        read varint message size from socket
+        :return: message size in bytes
+        '''
+        buffer = self.__recv(1)
+        if not buffer:
+            return 0
+
+        while (buffer[-1] & 0x80) >> 7 == 1:  # while the MSB is 1
+            chunk = self.__recv(1)
+            if not chunk:
+                raise EOFError('unexpected EOF')
+            buffer += chunk
+
+        varint, _ = _DecodeVarint(buffer, 0)
+        return varint
+
     def handshake_client(self, client_response: bytes,
                          server_response: bytes) -> bool:
         '''
@@ -70,16 +90,19 @@ class SocketRPC(socket.socket):
         self.sendall(client_response)
         return True
 
-    def read_message(self, message: Message, message_len_struct: str = 'I') -> Message:
+    def read_message(self, message: Message, message_len_struct: str | None = 'I') -> Message:
         '''
         read response from server and serialize it to message
         :param message: empty message to serialize to
         :param message_len_struct: message len struct, default I
         :return: serialized protobuf message
         '''
-        message_len_buffer_size = struct.Struct(message_len_struct).size
-        message_len_buffer = self.__recv(message_len_buffer_size)
-        (message_len,) = struct.unpack('>' + message_len_struct, message_len_buffer)
+        if message_len_struct is None:
+            message_len = self._read_varint()
+        else:
+            message_len_buffer_size = struct.Struct(message_len_struct).size
+            message_len_buffer = self.__recv(message_len_buffer_size)
+            (message_len,) = struct.unpack('>' + message_len_struct, message_len_buffer)
 
         message.ParseFromString(self.__recv(message_len))
 
