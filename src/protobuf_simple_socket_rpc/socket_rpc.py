@@ -32,6 +32,7 @@ class SocketRPC(socket.socket):
         :param kwargs: kwargs which will be passed to socket constructor directly
         '''
         socket.socket.__init__(self, *args, **kwargs)
+        self._buffer = b''  # unconsumed buffer from __recv
 
     def __recv(self, size: int) -> bytes:
         '''
@@ -39,11 +40,17 @@ class SocketRPC(socket.socket):
         :param size: server response size in bytes
         :return: server response
         '''
-        buffer = b''
+        # copy bytes from unconsumed buffer if available
+        buffer, self._buffer = self._buffer[:size], self._buffer[size:]
+        size -= len(buffer)
+
         while size > 0:
             chunk = self.recv(1)
+            if len(chunk) > size:  # if read size exceeds the requested, then save remaining bytes in buffer
+                chunk, self._buffer = chunk[:size], chunk[size:]
             buffer += chunk
             size -= len(chunk)
+
         return buffer
 
     def _read_varint(self) -> int:
