@@ -25,14 +25,10 @@ class SocketRPC(socket.socket):
     simple socket rpc implementation for protobuf
     '''
 
-    def __init__(self, *args: int, **kwargs: int) -> None:
-        '''
-        class init method
-        :param args: args which will be passed to socket constructor directly
-        :param kwargs: kwargs which will be passed to socket constructor directly
-        '''
-        socket.socket.__init__(self, *args, **kwargs)
-        self._buffer = b''  # unconsumed buffer from __recv
+    # unconsumed buffer from __recv
+    # this property is not initialized in __init__ because ssl.SSLSocket doesn't have
+    # (adn doesn't call) __init__ method
+    _buffer: bytes = b''
 
     def __recv(self, size: int) -> bytes:
         '''
