@@ -41,7 +41,7 @@ class SocketRPC(socket.socket):
         size -= len(buffer)
 
         while size > 0:
-            chunk = self.recv(1)
+            chunk = self._rpc_recv(1)
             if len(chunk) > size:  # if read size exceeds the requested, then save remaining bytes in buffer
                 chunk, self._buffer = chunk[:size], chunk[size:]
             buffer += chunk
@@ -68,6 +68,24 @@ class SocketRPC(socket.socket):
         varint, _ = _DecodeVarint(buffer, 0)
         return varint
 
+    def _rpc_recv(self, *args: int, **kwargs: int) -> bytes:
+        '''
+        methods to be used to receive a RPC message
+        :param args: positional arguments as in `socket.recv`
+        :param kwargs: named arguments as in `socket.recv`
+        :return: bytes read
+        '''
+        return self.recv(*args, **kwargs)
+
+    def _rpc_send(self, *args: bytes, **kwargs: int) -> None:
+        '''
+        methods to be used to send a RPC message
+        :param args: positional arguments as in `socket.sendall`
+        :param kwargs: named arguments as in `socket.sendall`
+        :return: bytes read
+        '''
+        return self.sendall(*args, **kwargs)
+
     def handshake_client(self, client_response: bytes,
                          server_response: bytes) -> bool:
         '''
@@ -76,7 +94,7 @@ class SocketRPC(socket.socket):
         :param server_response: server response expected on connection
         :return: true in case of successfully handshake
         '''
-        self.sendall(client_response)
+        self._rpc_send(client_response)
         return self.__recv(len(server_response)) == server_response
 
     def handshake_server(self, client_response: bytes,
@@ -90,7 +108,7 @@ class SocketRPC(socket.socket):
         response = self.__recv(len(server_response))
         if response != server_response:
             return False
-        self.sendall(client_response)
+        self._rpc_send(client_response)
         return True
 
     def read_message(self, message: Message, message_len_struct: str | None = 'I') -> Message:
@@ -117,5 +135,4 @@ class SocketRPC(socket.socket):
         :param message: protobuf message
         '''
         packed_len = struct.pack('>I', message.ByteSize())
-        self.sendall(packed_len)
-        self.sendall(message.SerializeToString())
+        self._rpc_send(packed_len + message.SerializeToString())
